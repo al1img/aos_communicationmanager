@@ -30,7 +30,7 @@ import (
 	pb "github.com/aoscloud/aos_common/api/updatemanager/v1"
 	"github.com/aoscloud/aos_common/utils/cryptutils"
 
-	"aos_communicationmanager/config"
+	"github.com/aoscloud/aos_communicationmanager/config"
 )
 
 /***********************************************************************************************************************
@@ -128,7 +128,7 @@ func (server *umCtrlServer) RegisterUM(stream pb.UMService_RegisterUMServer) (er
 
 	server.controllerCh <- openConnectionMsg
 
-	//wait for close
+	// wait for close
 	<-ch
 
 	closeConnectionMsg := umCtrlInternalMsg{

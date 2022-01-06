@@ -39,9 +39,9 @@ import (
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 
-	"aos_communicationmanager/cloudprotocol"
-	"aos_communicationmanager/config"
-	"aos_communicationmanager/iamclient"
+	"github.com/aoscloud/aos_communicationmanager/cloudprotocol"
+	"github.com/aoscloud/aos_communicationmanager/config"
+	"github.com/aoscloud/aos_communicationmanager/iamclient"
 )
 
 /***********************************************************************************************************************
@@ -77,8 +77,7 @@ type testSender struct {
 	serial map[string]string
 }
 
-type testCertProvider struct {
-}
+type testCertProvider struct{}
 
 type servicePermissions struct {
 	serviceID   string
@@ -99,7 +98,8 @@ func init() {
 	log.SetFormatter(&log.TextFormatter{
 		DisableTimestamp: false,
 		TimestampFormat:  "2006-01-02 15:04:05.000",
-		FullTimestamp:    true})
+		FullTimestamp:    true,
+	})
 	log.SetLevel(log.DebugLevel)
 	log.SetOutput(os.Stdout)
 }
@@ -284,7 +284,8 @@ KzpDMr/kcScwzmmNcN8aLp31TSRVee64QrK7yF3YJxL+rA==
 
 	server.certURL = map[string]string{
 		"online":  onlineURL.String(),
-		"offline": offlineURL.String()}
+		"offline": offlineURL.String(),
+	}
 
 	client, err := iamclient.New(&config.Config{IAMServerURL: serverURL}, sender, true)
 	if err != nil {

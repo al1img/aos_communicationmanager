@@ -27,7 +27,7 @@ import (
 	"testing"
 	"time"
 
-	"aos_communicationmanager/config"
+	"github.com/aoscloud/aos_communicationmanager/config"
 )
 
 /***********************************************************************************************************************
@@ -110,8 +110,10 @@ const testConfigContent = `{
  * Vars
  **********************************************************************************************************************/
 
-var tmpDir string
-var testCfg *config.Config
+var (
+	tmpDir  string
+	testCfg *config.Config
+)
 
 /***********************************************************************************************************************
  * Main

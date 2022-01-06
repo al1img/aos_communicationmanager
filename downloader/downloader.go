@@ -38,10 +38,10 @@ import (
 	"github.com/cavaliercoder/grab"
 	log "github.com/sirupsen/logrus"
 
-	"aos_communicationmanager/alerts"
-	"aos_communicationmanager/cloudprotocol"
-	"aos_communicationmanager/config"
-	"aos_communicationmanager/fcrypt"
+	"github.com/aoscloud/aos_communicationmanager/alerts"
+	"github.com/aoscloud/aos_communicationmanager/cloudprotocol"
+	"github.com/aoscloud/aos_communicationmanager/config"
+	"github.com/aoscloud/aos_communicationmanager/fcrypt"
 )
 
 /***********************************************************************************************************************
@@ -395,7 +395,8 @@ func (downloader *Downloader) tryFreeSpace(dir string, requiredSize int64) (free
 		if !file.IsDir() {
 			log.WithFields(log.Fields{
 				"name": fileName,
-				"size": fileSize}).Debugf("Remove outdated file: %s", fileName)
+				"size": fileSize,
+			}).Debugf("Remove outdated file: %s", fileName)
 		} else {
 			log.WithFields(log.Fields{"directory": fileName}).Warnf("Remove foreign directory: %s", fileName)
 		}
@@ -425,7 +426,8 @@ func (downloader *Downloader) getRequiredSize(fileName string, totalSize int64) 
 		log.WithFields(log.Fields{
 			"name":         fileName,
 			"expectedSize": totalSize,
-			"currentSize":  size}).Warnf("File size is larger than expected")
+			"currentSize":  size,
+		}).Warnf("File size is larger than expected")
 
 		return totalSize, nil
 	}
@@ -601,7 +603,8 @@ func (downloader *Downloader) download(url string, result *downloadResult) (err 
 				log.WithFields(log.Fields{
 					"id":         result.id,
 					"file":       resp.Filename,
-					"downloaded": resp.BytesComplete(), "reason": err}).Warn("Download interrupted")
+					"downloaded": resp.BytesComplete(), "reason": err,
+				}).Warn("Download interrupted")
 
 				result.storeInterruptReason(err.Error())
 				downloader.sender.SendDownloadInterruptedAlert(downloader.getDownloadStatus(resp), err.Error())
@@ -612,7 +615,8 @@ func (downloader *Downloader) download(url string, result *downloadResult) (err 
 			log.WithFields(log.Fields{
 				"id":         result.id,
 				"file":       resp.Filename,
-				"downloaded": resp.BytesComplete()}).Debug("Download completed")
+				"downloaded": resp.BytesComplete(),
+			}).Debug("Download completed")
 
 			downloader.sender.SendDownloadFinishedAlert(downloader.getDownloadStatus(resp), resp.HTTPResponse.StatusCode)
 
@@ -629,7 +633,8 @@ func (downloader *Downloader) decryptPackage(result *downloadResult) (err error)
 		AsymmetricAlgName: result.packageInfo.DecryptionInfo.AsymAlg,
 		ReceiverInfo: fcrypt.ReceiverInfo{
 			Issuer: result.packageInfo.DecryptionInfo.ReceiverInfo.Issuer,
-			Serial: result.packageInfo.DecryptionInfo.ReceiverInfo.Serial},
+			Serial: result.packageInfo.DecryptionInfo.ReceiverInfo.Serial,
+		},
 	})
 	if err != nil {
 		return aoserrors.Wrap(err)
@@ -691,9 +696,11 @@ func (downloader *Downloader) validateSigns(result *downloadResult) (err error) 
 }
 
 func (downloader *Downloader) getDownloadStatus(resp *grab.Response) (status alerts.DownloadStatus) {
-	return alerts.DownloadStatus{Source: downloader.moduleID, URL: resp.Request.HTTPRequest.URL.String(),
+	return alerts.DownloadStatus{
+		Source: downloader.moduleID, URL: resp.Request.HTTPRequest.URL.String(),
 		Progress: int(resp.Progress() * 100), DownloadedBytes: uint64(resp.BytesComplete()),
-		TotalBytes: uint64(resp.Size)}
+		TotalBytes: uint64(resp.Size),
+	}
 }
 
 func (downloader *Downloader) lockDownload(result *downloadResult) {

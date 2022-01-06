@@ -39,11 +39,11 @@ import (
 	"github.com/aoscloud/aos_common/utils/testtools"
 	log "github.com/sirupsen/logrus"
 
-	"aos_communicationmanager/alerts"
-	"aos_communicationmanager/cloudprotocol"
-	"aos_communicationmanager/config"
-	"aos_communicationmanager/downloader"
-	"aos_communicationmanager/fcrypt"
+	"github.com/aoscloud/aos_communicationmanager/alerts"
+	"github.com/aoscloud/aos_communicationmanager/cloudprotocol"
+	"github.com/aoscloud/aos_communicationmanager/config"
+	"github.com/aoscloud/aos_communicationmanager/downloader"
+	"github.com/aoscloud/aos_communicationmanager/fcrypt"
 )
 
 /***********************************************************************************************************************
@@ -59,17 +59,13 @@ const (
  * Types
  **********************************************************************************************************************/
 
-type testCryptoContext struct {
-}
+type testCryptoContext struct{}
 
-type testSymmetricContext struct {
-}
+type testSymmetricContext struct{}
 
-type testSignContext struct {
-}
+type testSignContext struct{}
 
-type testAlertSender struct {
-}
+type testAlertSender struct{}
 
 type alertsCounter struct {
 	alertStarted     int
@@ -106,7 +102,8 @@ func init() {
 	log.SetFormatter(&log.TextFormatter{
 		DisableTimestamp: false,
 		TimestampFormat:  "2006-01-02 15:04:05.000",
-		FullTimestamp:    true})
+		FullTimestamp:    true,
+	})
 	log.SetLevel(log.DebugLevel)
 	log.SetOutput(os.Stdout)
 }
@@ -793,7 +790,7 @@ func generateFile(fileName string, size uint64) (err error) {
 	return nil
 }
 
-//Set traffic limit for interface
+// Set traffic limit for interface
 func setWondershaperLimit(iface string, limit string) (err error) {
 	if output, err := exec.Command("wondershaper", "-a", iface, "-d", limit).CombinedOutput(); err != nil {
 		return aoserrors.Errorf("%s (%s)", err, (string(output)))

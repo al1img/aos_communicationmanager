@@ -24,15 +24,17 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"aos_communicationmanager/cloudprotocol"
+	"github.com/aoscloud/aos_communicationmanager/cloudprotocol"
 )
 
 /***********************************************************************************************************************
  * Consts
  **********************************************************************************************************************/
 
-const maxReasonSize = 512
-const unknownInterruptReason = "unknown"
+const (
+	maxReasonSize          = 512
+	unknownInterruptReason = "unknown"
+)
 
 /***********************************************************************************************************************
  * Types

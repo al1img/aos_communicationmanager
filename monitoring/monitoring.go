@@ -31,8 +31,8 @@ import (
 	"github.com/shirou/gopsutil/mem"
 	log "github.com/sirupsen/logrus"
 
-	"aos_communicationmanager/cloudprotocol"
-	"aos_communicationmanager/config"
+	"github.com/aoscloud/aos_communicationmanager/cloudprotocol"
+	"github.com/aoscloud/aos_communicationmanager/config"
 )
 
 /***********************************************************************************************************************
@@ -269,7 +269,8 @@ func (monitor *Monitor) getCurrentSystemData() {
 		"RAM":  monitor.dataToSend.Global.RAM,
 		"Disk": monitor.dataToSend.Global.UsedDisk,
 		"IN":   monitor.dataToSend.Global.InTraffic,
-		"OUT":  monitor.dataToSend.Global.OutTraffic}).Debug("Monitoring data")
+		"OUT":  monitor.dataToSend.Global.OutTraffic,
+	}).Debug("Monitoring data")
 }
 
 func (monitor *Monitor) processAlerts() {

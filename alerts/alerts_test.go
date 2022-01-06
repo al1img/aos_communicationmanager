@@ -34,9 +34,9 @@ import (
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 
-	"aos_communicationmanager/alerts"
-	"aos_communicationmanager/cloudprotocol"
-	"aos_communicationmanager/config"
+	"github.com/aoscloud/aos_communicationmanager/alerts"
+	"github.com/aoscloud/aos_communicationmanager/cloudprotocol"
+	"github.com/aoscloud/aos_communicationmanager/config"
 )
 
 /*******************************************************************************
@@ -47,7 +47,8 @@ func init() {
 	log.SetFormatter(&log.TextFormatter{
 		DisableTimestamp: false,
 		TimestampFormat:  "2006-01-02 15:04:05.000",
-		FullTimestamp:    true})
+		FullTimestamp:    true,
+	})
 	log.SetLevel(log.DebugLevel)
 	log.SetOutput(os.Stdout)
 }
@@ -68,9 +69,11 @@ type testSender struct {
  * Vars
  ******************************************************************************/
 
-var systemd *dbus.Conn
-var errTimeout = errors.New("timeout")
-var tmpDir string
+var (
+	systemd    *dbus.Conn
+	errTimeout = errors.New("timeout")
+	tmpDir     string
+)
 
 /*******************************************************************************
  * Main
@@ -100,7 +103,8 @@ func TestGetSystemError(t *testing.T) {
 		EnableSystemAlerts: true,
 		SendPeriod:         config.Duration{Duration: 1 * time.Second},
 		MaxMessageSize:     1024,
-		MaxOfflineMessages: 32}}, testSender, &testCursorStorage{})
+		MaxOfflineMessages: 32,
+	}}, testSender, &testCursorStorage{})
 	if err != nil {
 		t.Fatalf("Can't create alerts: %s", err)
 	}
@@ -186,7 +190,8 @@ func TestGetOfflineSystemError(t *testing.T) {
 		EnableSystemAlerts: true,
 		SendPeriod:         config.Duration{Duration: 1 * time.Second},
 		MaxMessageSize:     1024,
-		MaxOfflineMessages: 32}}, testSender, cursorStorage)
+		MaxOfflineMessages: 32,
+	}}, testSender, cursorStorage)
 	if err != nil {
 		t.Fatalf("Can't create alerts: %s", err)
 	}
@@ -218,7 +223,8 @@ func TestGetOfflineSystemError(t *testing.T) {
 		EnableSystemAlerts: true,
 		SendPeriod:         config.Duration{Duration: 1 * time.Second},
 		MaxMessageSize:     1024,
-		MaxOfflineMessages: 32}}, testSender, cursorStorage)
+		MaxOfflineMessages: 32,
+	}}, testSender, cursorStorage)
 	if err != nil {
 		t.Fatalf("Can't create alerts: %s", err)
 	}
@@ -236,7 +242,8 @@ func TestGetDowloadsStatusAlerts(t *testing.T) {
 	alertsHandler, err := alerts.New(&config.Config{Alerts: config.Alerts{
 		SendPeriod:         config.Duration{Duration: 1 * time.Second},
 		MaxMessageSize:     2048,
-		MaxOfflineMessages: 32}}, testSender, &testCursorStorage{})
+		MaxOfflineMessages: 32,
+	}}, testSender, &testCursorStorage{})
 	if err != nil {
 		t.Fatalf("Can't create alerts: %s", err)
 	}
@@ -254,7 +261,8 @@ func TestGetDowloadsStatusAlerts(t *testing.T) {
 	downloadStatus := alerts.DownloadStatus{
 		Source:     "downloader",
 		URL:        "https://testurl",
-		TotalBytes: 157_286_400} // 150 MB in binary format
+		TotalBytes: 157_286_400,
+	} // 150 MB in binary format
 
 	// send download started alert status
 	originAlert := downloadAlert{
@@ -263,7 +271,8 @@ func TestGetDowloadsStatusAlerts(t *testing.T) {
 		progress:        "0%",
 		url:             downloadStatus.URL,
 		downloadedBytes: "0B",
-		totalBytes:      "150M"}
+		totalBytes:      "150M",
+	}
 
 	proccessAlertFunc := func(alert cloudprotocol.AlertItem) (success bool, err error) {
 		if alert.Tag != cloudprotocol.AlertTagAosCore {
@@ -281,7 +290,8 @@ func TestGetDowloadsStatusAlerts(t *testing.T) {
 			progress:        receivedAlert.Progress,
 			url:             receivedAlert.URL,
 			downloadedBytes: receivedAlert.DownloadedBytes,
-			totalBytes:      receivedAlert.TotalBytes}
+			totalBytes:      receivedAlert.TotalBytes,
+		}
 
 		if receivedItem == originAlert {
 			return true, nil
@@ -307,7 +317,8 @@ func TestGetDowloadsStatusAlerts(t *testing.T) {
 		progress:        strconv.Itoa(downloadStatus.Progress) + "%",
 		url:             downloadStatus.URL,
 		downloadedBytes: "15M",
-		totalBytes:      "150M"}
+		totalBytes:      "150M",
+	}
 
 	alertsHandler.SendDownloadInterruptedAlert(downloadStatus, reason)
 
@@ -334,7 +345,8 @@ func TestGetDowloadsStatusAlerts(t *testing.T) {
 		progress:        strconv.Itoa(downloadStatus.Progress) + "%",
 		url:             downloadStatus.URL,
 		downloadedBytes: "30M",
-		totalBytes:      "150M"}
+		totalBytes:      "150M",
+	}
 
 	alertsHandler.SendDownloadStatusAlert(downloadStatus)
 
@@ -353,7 +365,8 @@ func TestGetDowloadsStatusAlerts(t *testing.T) {
 		progress:        strconv.Itoa(downloadStatus.Progress) + "%",
 		url:             downloadStatus.URL,
 		downloadedBytes: "150M",
-		totalBytes:      "150M"}
+		totalBytes:      "150M",
+	}
 
 	alertsHandler.SendDownloadFinishedAlert(downloadStatus, downloadCode)
 
@@ -372,7 +385,8 @@ func TestGetDowloadsStatusAlerts(t *testing.T) {
 		progress:        strconv.Itoa(downloadStatus.Progress) + "%",
 		url:             downloadStatus.URL,
 		downloadedBytes: "50M",
-		totalBytes:      "150M"}
+		totalBytes:      "150M",
+	}
 
 	alertsHandler.SendDownloadFinishedAlert(downloadStatus, downloadCode)
 
@@ -402,7 +416,8 @@ func TestGetCommunicationManagerAlerts(t *testing.T) {
 		EnableSystemAlerts: true,
 		SendPeriod:         config.Duration{Duration: 1 * time.Second},
 		MaxMessageSize:     2048,
-		MaxOfflineMessages: 32}}, testSender, &testCursorStorage{})
+		MaxOfflineMessages: 32,
+	}}, testSender, &testCursorStorage{})
 	if err != nil {
 		t.Fatalf("Can't create alerts: %s", err)
 	}
@@ -431,7 +446,8 @@ func TestAlertsMaxMessageSize(t *testing.T) {
 		EnableSystemAlerts: true,
 		SendPeriod:         config.Duration{Duration: 1 * time.Second},
 		MaxMessageSize:     500,
-		MaxOfflineMessages: 32}}, testSender, &testCursorStorage{})
+		MaxOfflineMessages: 32,
+	}}, testSender, &testCursorStorage{})
 	if err != nil {
 		t.Fatalf("Can't create alerts: %s", err)
 	}
@@ -461,7 +477,8 @@ func TestAlertsMaxOfflineMessages(t *testing.T) {
 		EnableSystemAlerts: true,
 		SendPeriod:         config.Duration{Duration: 1 * time.Second},
 		MaxMessageSize:     1024,
-		MaxOfflineMessages: 3}}, testSender, &testCursorStorage{})
+		MaxOfflineMessages: 3,
+	}}, testSender, &testCursorStorage{})
 	if err != nil {
 		t.Fatalf("Can't create alerts: %s", err)
 	}
@@ -496,7 +513,8 @@ func TestDuplicateAlerts(t *testing.T) {
 		EnableSystemAlerts: true,
 		SendPeriod:         config.Duration{Duration: 1 * time.Second},
 		MaxMessageSize:     1024,
-		MaxOfflineMessages: 25}}, testSender, &testCursorStorage{})
+		MaxOfflineMessages: 25,
+	}}, testSender, &testCursorStorage{})
 	if err != nil {
 		t.Fatalf("Can't create alerts: %s", err)
 	}
@@ -528,7 +546,8 @@ func TestMessageFilter(t *testing.T) {
 		SendPeriod:         config.Duration{Duration: 1 * time.Second},
 		MaxMessageSize:     1024,
 		MaxOfflineMessages: 32,
-		Filter:             filter}}, testSender, &testCursorStorage{})
+		Filter:             filter,
+	}}, testSender, &testCursorStorage{})
 	if err != nil {
 		t.Fatalf("Can't create alerts: %s", err)
 	}
@@ -588,7 +607,8 @@ func TestWrongFilter(t *testing.T) {
 		SendPeriod:         config.Duration{Duration: 1 * time.Second},
 		MaxMessageSize:     1024,
 		MaxOfflineMessages: 32,
-		Filter:             []string{"", "*(test)^"}}}, newTestSender(), &testCursorStorage{})
+		Filter:             []string{"", "*(test)^"},
+	}}, newTestSender(), &testCursorStorage{})
 	if err != nil {
 		t.Fatalf("Can't create alerts: %s", err)
 	}
@@ -601,7 +621,8 @@ func TestGetResourceAlerts(t *testing.T) {
 	alertsHandler, err := alerts.New(&config.Config{Alerts: config.Alerts{
 		SendPeriod:         config.Duration{Duration: 1 * time.Second},
 		MaxMessageSize:     2048,
-		MaxOfflineMessages: 32}}, testSender, &testCursorStorage{})
+		MaxOfflineMessages: 32,
+	}}, testSender, &testCursorStorage{})
 	if err != nil {
 		t.Fatalf("Can't create alerts: %s", err)
 	}
@@ -617,7 +638,8 @@ func TestGetResourceAlerts(t *testing.T) {
 	resourceAlerts := []resourceAlert{
 		{"system", "ram", time.Now(), 93},
 		{"system", "ram", time.Now(), 1500},
-		{"system", "ram", time.Now(), 1600}}
+		{"system", "ram", time.Now(), 1600},
+	}
 
 	for _, alert := range resourceAlerts {
 		alertsHandler.SendResourceAlert(alert.source, alert.resource, alert.time, alert.value)
@@ -639,7 +661,8 @@ func TestGetResourceAlerts(t *testing.T) {
 					source:   alert.Source,
 					resource: receivedAlert.Parameter,
 					time:     alert.Timestamp,
-					value:    receivedAlert.Value}
+					value:    receivedAlert.Value,
+				}
 
 				if receivedItem == originItem {
 					resourceAlerts = append(resourceAlerts[:i], resourceAlerts[i+1:]...)

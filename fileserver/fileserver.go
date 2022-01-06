@@ -27,7 +27,7 @@ import (
 	"github.com/aoscloud/aos_common/aoserrors"
 	log "github.com/sirupsen/logrus"
 
-	"aos_communicationmanager/config"
+	"github.com/aoscloud/aos_communicationmanager/config"
 )
 
 /***********************************************************************************************************************
@@ -43,8 +43,10 @@ type FileServer struct {
  * Consts
  **********************************************************************************************************************/
 
-const fileScheme = "file"
-const httpScheme = "http"
+const (
+	fileScheme = "file"
+	httpScheme = "http"
+)
 
 /***********************************************************************************************************************
  * public
@@ -61,7 +63,8 @@ func New(cfg *config.Config) (fileServer *FileServer, err error) {
 	if cfg.FileServerURL != "" {
 		fileServer.server = &http.Server{
 			Addr:    cfg.FileServerURL,
-			Handler: http.FileServer(http.Dir(cfg.Downloader.DecryptDir))}
+			Handler: http.FileServer(http.Dir(cfg.Downloader.DecryptDir)),
+		}
 
 		go fileServer.startFileStorage()
 	}

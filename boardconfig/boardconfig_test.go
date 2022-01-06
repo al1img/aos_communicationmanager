@@ -18,9 +18,6 @@
 package boardconfig_test
 
 import (
-	"aos_communicationmanager/boardconfig"
-	"aos_communicationmanager/cloudprotocol"
-	"aos_communicationmanager/config"
 	"encoding/json"
 	"io/ioutil"
 	"os"
@@ -28,14 +25,17 @@ import (
 	"testing"
 
 	log "github.com/sirupsen/logrus"
+
+	"github.com/aoscloud/aos_communicationmanager/boardconfig"
+	"github.com/aoscloud/aos_communicationmanager/cloudprotocol"
+	"github.com/aoscloud/aos_communicationmanager/config"
 )
 
 /***********************************************************************************************************************
  * Types
  **********************************************************************************************************************/
 
-type testClient struct {
-}
+type testClient struct{}
 
 /***********************************************************************************************************************
  * Vars
@@ -51,7 +51,8 @@ func init() {
 	log.SetFormatter(&log.TextFormatter{
 		DisableTimestamp: false,
 		TimestampFormat:  "2006-01-02 15:04:05.000",
-		FullTimestamp:    true})
+		FullTimestamp:    true,
+	})
 	log.SetLevel(log.DebugLevel)
 	log.SetOutput(os.Stdout)
 }

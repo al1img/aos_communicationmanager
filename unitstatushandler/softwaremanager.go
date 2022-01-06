@@ -32,8 +32,8 @@ import (
 	"github.com/looplab/fsm"
 	log "github.com/sirupsen/logrus"
 
-	"aos_communicationmanager/cloudprotocol"
-	"aos_communicationmanager/cmserver"
+	"github.com/aoscloud/aos_communicationmanager/cloudprotocol"
+	"github.com/aoscloud/aos_communicationmanager/cmserver"
 )
 
 /***********************************************************************************************************************
@@ -157,32 +157,38 @@ func (manager *softwareManager) getCurrentStatus() (status cmserver.UpdateSOTASt
 
 	for _, layer := range manager.CurrentUpdate.DownloadLayers {
 		status.InstallLayers = append(status.InstallLayers, cloudprotocol.LayerInfo{
-			ID: layer.ID, Digest: layer.Digest, AosVersion: layer.AosVersion})
+			ID: layer.ID, Digest: layer.Digest, AosVersion: layer.AosVersion,
+		})
 	}
 
 	for _, layer := range manager.CurrentUpdate.InstallLayers {
 		status.InstallLayers = append(status.InstallLayers, cloudprotocol.LayerInfo{
-			ID: layer.ID, Digest: layer.Digest, AosVersion: layer.AosVersion})
+			ID: layer.ID, Digest: layer.Digest, AosVersion: layer.AosVersion,
+		})
 	}
 
 	for _, layer := range manager.CurrentUpdate.RemoveLayers {
 		status.RemoveLayers = append(status.InstallLayers, cloudprotocol.LayerInfo{
-			ID: layer.ID, Digest: layer.Digest, AosVersion: layer.AosVersion})
+			ID: layer.ID, Digest: layer.Digest, AosVersion: layer.AosVersion,
+		})
 	}
 
 	for _, service := range manager.CurrentUpdate.DownloadServices {
 		status.InstallServices = append(status.InstallServices, cloudprotocol.ServiceInfo{
-			ID: service.ID, AosVersion: service.AosVersion})
+			ID: service.ID, AosVersion: service.AosVersion,
+		})
 	}
 
 	for _, service := range manager.CurrentUpdate.InstallServices {
 		status.InstallServices = append(status.InstallServices, cloudprotocol.ServiceInfo{
-			ID: service.ID, AosVersion: service.AosVersion})
+			ID: service.ID, AosVersion: service.AosVersion,
+		})
 	}
 
 	for _, service := range manager.CurrentUpdate.RemoveServices {
 		status.RemoveServices = append(status.RemoveServices, cloudprotocol.ServiceInfo{
-			ID: service.ID, AosVersion: service.AosVersion})
+			ID: service.ID, AosVersion: service.AosVersion,
+		})
 	}
 
 	return status
@@ -399,7 +405,8 @@ func (manager *softwareManager) stateChanged(event, state string, updateErr stri
 
 	log.WithFields(log.Fields{
 		"state": state,
-		"event": event}).Debug("Software manager state changed")
+		"event": event,
+	}).Debug("Software manager state changed")
 
 	if updateErr != "" {
 		log.Errorf("Software update error: %s", updateErr)

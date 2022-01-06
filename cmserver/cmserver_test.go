@@ -28,9 +28,9 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
 
-	"aos_communicationmanager/cloudprotocol"
-	"aos_communicationmanager/cmserver"
-	"aos_communicationmanager/config"
+	"github.com/aoscloud/aos_communicationmanager/cloudprotocol"
+	"github.com/aoscloud/aos_communicationmanager/cmserver"
+	"github.com/aoscloud/aos_communicationmanager/config"
 )
 
 /*******************************************************************************
@@ -63,7 +63,8 @@ func init() {
 	log.SetFormatter(&log.TextFormatter{
 		DisableTimestamp: false,
 		TimestampFormat:  "2006-01-02 15:04:05.000",
-		FullTimestamp:    true})
+		FullTimestamp:    true,
+	})
 	log.SetLevel(log.DebugLevel)
 	log.SetOutput(os.Stdout)
 }
@@ -83,7 +84,8 @@ func TestConnection(t *testing.T) {
 
 	unitStatusHandler := testUpdateHandler{
 		sotaChannel: make(chan cmserver.UpdateSOTAStatus, 10),
-		fotaChannel: make(chan cmserver.UpdateFOTAStatus, 10)}
+		fotaChannel: make(chan cmserver.UpdateFOTAStatus, 10),
+	}
 
 	cmServer, err := cmserver.New(&cmConfig, &unitStatusHandler, true)
 	if err != nil {
@@ -262,7 +264,6 @@ func (handler *testUpdateHandler) GetFOTAStatus() (status cmserver.UpdateFOTASta
 	status.State = cmserver.NoUpdate
 
 	return status
-
 }
 
 func (handler *testUpdateHandler) GetSOTAStatus() (status cmserver.UpdateSOTAStatus) {

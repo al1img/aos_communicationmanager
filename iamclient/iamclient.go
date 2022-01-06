@@ -31,8 +31,8 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 
-	"aos_communicationmanager/cloudprotocol"
-	"aos_communicationmanager/config"
+	"github.com/aoscloud/aos_communicationmanager/cloudprotocol"
+	"github.com/aoscloud/aos_communicationmanager/config"
 )
 
 /***********************************************************************************************************************
@@ -93,7 +93,8 @@ func New(config *config.Config, sender Sender, insecure bool) (client *Client, e
 	client = &Client{
 		sender:              sender,
 		usersChangedChannel: make(chan []string, usersChangedChannelSize),
-		closeChannel:        make(chan struct{}, 1)}
+		closeChannel:        make(chan struct{}, 1),
+	}
 	defer func() {
 		if err != nil {
 			client.Close()
@@ -234,7 +235,8 @@ func (client *Client) GetCertificate(certType string, issuer []byte, serial stri
 	log.WithFields(log.Fields{
 		"type":   certType,
 		"issuer": base64.StdEncoding.EncodeToString(issuer),
-		"serial": serial}).Debug("Get certificate")
+		"serial": serial,
+	}).Debug("Get certificate")
 
 	ctx, cancel := context.WithTimeout(context.Background(), iamRequestTimeout)
 	defer cancel()

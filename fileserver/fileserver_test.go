@@ -31,8 +31,8 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"aos_communicationmanager/config"
-	"aos_communicationmanager/fileserver"
+	"github.com/aoscloud/aos_communicationmanager/config"
+	"github.com/aoscloud/aos_communicationmanager/fileserver"
 )
 
 /***********************************************************************************************************************
@@ -53,7 +53,8 @@ func init() {
 	log.SetFormatter(&log.TextFormatter{
 		DisableTimestamp: false,
 		TimestampFormat:  "2006-01-02 15:04:05.000",
-		FullTimestamp:    true})
+		FullTimestamp:    true,
+	})
 	log.SetLevel(log.DebugLevel)
 	log.SetOutput(os.Stdout)
 }

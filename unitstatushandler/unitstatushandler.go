@@ -30,10 +30,10 @@ import (
 	"github.com/aoscloud/aos_common/aoserrors"
 	log "github.com/sirupsen/logrus"
 
-	"aos_communicationmanager/cloudprotocol"
-	"aos_communicationmanager/cmserver"
-	"aos_communicationmanager/config"
-	"aos_communicationmanager/downloader"
+	"github.com/aoscloud/aos_communicationmanager/cloudprotocol"
+	"github.com/aoscloud/aos_communicationmanager/cmserver"
+	"github.com/aoscloud/aos_communicationmanager/config"
+	"github.com/aoscloud/aos_communicationmanager/downloader"
 )
 
 /***********************************************************************************************************************
@@ -245,7 +245,8 @@ func (instance *Instance) SendUnitStatus() (err error) {
 		log.WithFields(log.Fields{
 			"status":        status.Status,
 			"vendorVersion": status.VendorVersion,
-			"error":         status.Error}).Debug("Initial board config status")
+			"error":         status.Error,
+		}).Debug("Initial board config status")
 
 		instance.processBoardConfigStatus(status)
 	}
@@ -262,7 +263,8 @@ func (instance *Instance) SendUnitStatus() (err error) {
 			"id":            status.ID,
 			"status":        status.Status,
 			"vendorVersion": status.VendorVersion,
-			"error":         status.Error}).Debug("Initial component status")
+			"error":         status.Error,
+		}).Debug("Initial component status")
 
 		instance.processComponentStatus(status)
 	}
@@ -283,7 +285,8 @@ func (instance *Instance) SendUnitStatus() (err error) {
 			"id":         status.ID,
 			"status":     status.Status,
 			"aosVersion": status.AosVersion,
-			"error":      status.Error}).Debug("Initial service status")
+			"error":      status.Error,
+		}).Debug("Initial service status")
 
 		instance.processServiceStatus(status)
 	}
@@ -298,7 +301,8 @@ func (instance *Instance) SendUnitStatus() (err error) {
 			"digest":     status.Digest,
 			"status":     status.Status,
 			"aosVersion": status.AosVersion,
-			"error":      status.Error}).Debug("Initial layer status")
+			"error":      status.Error,
+		}).Debug("Initial layer status")
 
 		instance.processLayerStatus(status)
 	}
@@ -415,7 +419,8 @@ func (instance *Instance) updateBoardConfigStatus(boardConfigInfo cloudprotocol.
 	log.WithFields(log.Fields{
 		"status":        boardConfigInfo.Status,
 		"vendorVersion": boardConfigInfo.VendorVersion,
-		"error":         boardConfigInfo.Error}).Debug("Update board config status")
+		"error":         boardConfigInfo.Error,
+	}).Debug("Update board config status")
 
 	instance.processBoardConfigStatus(boardConfigInfo)
 	instance.statusChanged()
@@ -433,7 +438,8 @@ func (instance *Instance) updateComponentStatus(componentInfo cloudprotocol.Comp
 		"id":            componentInfo.ID,
 		"status":        componentInfo.Status,
 		"vendorVersion": componentInfo.VendorVersion,
-		"error":         componentInfo.Error}).Debug("Update component status")
+		"error":         componentInfo.Error,
+	}).Debug("Update component status")
 
 	instance.processComponentStatus(componentInfo)
 	instance.statusChanged()
@@ -458,7 +464,8 @@ func (instance *Instance) updateLayerStatus(layerInfo cloudprotocol.LayerInfo) {
 		"digest":     layerInfo.Digest,
 		"status":     layerInfo.Status,
 		"aosVersion": layerInfo.AosVersion,
-		"error":      layerInfo.Error}).Debug("Update layer status")
+		"error":      layerInfo.Error,
+	}).Debug("Update layer status")
 
 	layerStatus, ok := instance.layerStatuses[layerInfo.Digest]
 	if !ok {
@@ -488,7 +495,8 @@ func (instance *Instance) updateServiceStatus(serviceInfo cloudprotocol.ServiceI
 		"id":         serviceInfo.ID,
 		"status":     serviceInfo.Status,
 		"aosVersion": serviceInfo.AosVersion,
-		"error":      serviceInfo.Error}).Debug("Update service status")
+		"error":      serviceInfo.Error,
+	}).Debug("Update service status")
 
 	instance.processServiceStatus(serviceInfo)
 	instance.statusChanged()
