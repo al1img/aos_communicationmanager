@@ -123,6 +123,7 @@ func New(
 
 	for _, smConfig := range cfg.SMController.SMList {
 		controller.readyWG.Add(1)
+
 		go controller.connectClient(smConfig, secureOpt)
 	}
 

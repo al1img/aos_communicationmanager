@@ -156,6 +156,7 @@ func createClientConnection(clientID string, state pb.UmState,
 	}
 
 	client := pb.NewUMServiceClient(conn)
+
 	stream, err = client.RegisterUM(context.Background())
 	if err != nil {
 		log.Errorf("Fail call RegisterUM %s", err)
@@ -167,6 +168,7 @@ func createClientConnection(clientID string, state pb.UmState,
 	if err = stream.Send(umMsg); err != nil {
 		log.Errorf("Fail send update status message %s", err)
 	}
+
 	time.Sleep(1 * time.Second)
 
 	return stream, conn, nil
@@ -429,6 +431,7 @@ func TestFullUpdateWithDisconnect(t *testing.T) {
 		{Id: "um3C2", VendorVersion: "2", Status: pb.ComponentStatus_INSTALLED},
 	}
 	um3 = newTestUM("testUM3", pb.UmState_IDLE, "init", um3Components, t)
+
 	go um3.processMessages()
 
 	// um4  reboot
@@ -441,6 +444,7 @@ func TestFullUpdateWithDisconnect(t *testing.T) {
 		{Id: "um4C2", VendorVersion: "2", Status: pb.ComponentStatus_INSTALLED},
 	}
 	um4 = newTestUM("testUM4", pb.UmState_IDLE, "init", um4Components, t)
+
 	go um4.processMessages()
 
 	um3.step = "finish"
@@ -611,10 +615,13 @@ func TestFullUpdateWithReboot(t *testing.T) {
 		{Id: "um5C1", VendorVersion: "1", Status: pb.ComponentStatus_INSTALLED},
 		{Id: "um5C2", VendorVersion: "2", Status: pb.ComponentStatus_INSTALLED},
 	}
+
 	um5 = newTestUM("testUM5", pb.UmState_IDLE, "init", um5Components, t)
+
 	go um5.processMessages()
 
 	um6 = newTestUM("testUM6", pb.UmState_UPDATED, "apply", um6Components, t)
+
 	go um6.processMessages()
 
 	um6.step = "reboot"
@@ -625,7 +632,9 @@ func TestFullUpdateWithReboot(t *testing.T) {
 		{Id: "um6C1", VendorVersion: "2", Status: pb.ComponentStatus_INSTALLED},
 		{Id: "um6C2", VendorVersion: "2", Status: pb.ComponentStatus_INSTALLED},
 	}
+
 	um6 = newTestUM("testUM6", pb.UmState_IDLE, "init", um6Components, t)
+
 	go um6.processMessages()
 
 	um5.step = "finish"
@@ -1274,8 +1283,10 @@ func (storage *testStorage) SetComponentsUpdateInfo(updateInfo []umcontroller.Sy
 
 func (um *testUmConnection) processMessages() {
 	defer func() { um.notifyTestChan <- true }()
+
 	for {
 		<-um.continueChan
+
 		msg, err := um.stream.Recv()
 		if err != nil {
 			return

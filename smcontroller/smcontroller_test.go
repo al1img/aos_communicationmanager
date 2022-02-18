@@ -125,6 +125,7 @@ func TestGetUsersStatus(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't create test SM: %s", err)
 	}
+
 	defer sm.close()
 
 	sm.usersServices = []cloudprotocol.ServiceInfo{
@@ -171,6 +172,7 @@ func TestGetAllStatus(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't create test SM: %s", err)
 	}
+
 	defer sm.close()
 
 	sm.allServices = []cloudprotocol.ServiceInfo{
@@ -213,6 +215,7 @@ func TestCheckBoardConfig(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't create test SM: %s", err)
 	}
+
 	defer sm.close()
 
 	controller, err := smcontroller.New(&config.Config{
@@ -242,6 +245,7 @@ func TestSetBoardConfig(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't create test SM: %s", err)
 	}
+
 	defer sm.close()
 
 	controller, err := smcontroller.New(&config.Config{
@@ -273,6 +277,7 @@ func TestInstallServices(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't create test SM: %s", err)
 	}
+
 	defer sm.close()
 
 	controller, err := smcontroller.New(&config.Config{
@@ -371,6 +376,7 @@ func TestRemoveServices(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't create test SM: %s", err)
 	}
+
 	defer sm.close()
 
 	controller, err := smcontroller.New(&config.Config{
@@ -976,7 +982,6 @@ func (sm *testSM) SubscribeSMNotifications(
 				}); err != nil {
 					return aoserrors.Wrap(err)
 				}
-
 			}
 
 		case <-sm.ctx.Done():

@@ -195,6 +195,7 @@ func TestGetOfflineSystemError(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't create alerts: %s", err)
 	}
+
 	alertsHandler.Close()
 
 	// Send offline messages

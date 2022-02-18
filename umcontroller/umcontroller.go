@@ -822,7 +822,11 @@ func (umCtrl *Controller) processUpdateUmState(e *fsm.Event) {
 }
 
 func (umCtrl *Controller) processError(e *fsm.Event) {
-	umCtrl.updateError = e.Args[0].(error)
+	var ok bool
+
+	if umCtrl.updateError, ok = e.Args[0].(error); !ok {
+		umCtrl.updateError = "unknown error"
+	}
 
 	log.Error("Update error: ", umCtrl.updateError)
 

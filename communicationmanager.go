@@ -120,9 +120,9 @@ func newCommunicationManager(cfg *config.Config) (cm *communicationManager, err 
 	cm = &communicationManager{}
 
 	if cm.db, err = database.New(cfg); err != nil {
-		// Try again after reset
-
 		log.Errorf("Can't create DB: %s", err)
+
+		// Try again after reset
 
 		if err = reset(cfg); err != nil {
 			log.Errorf("Can't reset CM: %s", err)

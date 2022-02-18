@@ -658,8 +658,8 @@ func TestSymmetricCipherContext_EncryptFile(t *testing.T) {
 
 	for _, testItem := range testSizes {
 		symmetricContext := CreateSymmetricCipherContext()
-		err := symmetricContext.generateKeyAndIV("AES128/CBC")
-		if err != nil {
+
+		if err := symmetricContext.generateKeyAndIV("AES128/CBC"); err != nil {
 			t.Fatalf("Error creating context: '%v'", err)
 		}
 
@@ -691,6 +691,7 @@ func TestSymmetricCipherContext_EncryptFile(t *testing.T) {
 		if err != nil {
 			t.Errorf("Error stat file (%v): %v", encFile.Name(), err)
 		}
+
 		if fi.Size() != int64((1+testItem/16)*16) {
 			t.Errorf("Invalid file (%v) size: %v vs %v", encFile.Name(), fi.Size(), int64((1+testItem/16)*16))
 		}
@@ -700,13 +701,17 @@ func TestSymmetricCipherContext_EncryptFile(t *testing.T) {
 		}
 
 		fi, err = decFile.Stat()
+
 		if err != nil {
 			t.Errorf("Error stat file (%v): %v", decFile.Name(), err)
 		}
+
 		if fi.Size() != int64(testItem) {
 			t.Errorf("Invalid file (%v) size: %v vs %v", decFile.Name(), fi.Size(), testItem)
 		}
+
 		test := make([]byte, 64*1024)
+
 		for {
 			readSiz, err := decFile.Read(test)
 			if err != nil {
@@ -716,6 +721,7 @@ func TestSymmetricCipherContext_EncryptFile(t *testing.T) {
 					break
 				}
 			}
+
 			for i := 0; i < readSiz; i++ {
 				if test[i] != 0 {
 					t.Errorf("Error decrypted file: non zero byte")

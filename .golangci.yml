@@ -1,0 +1,40 @@
+linters:
+  #  enable-all: true
+  #  disable:
+  #    - varnamelen
+  #    - exhaustivestruct
+  #    - paralleltest
+  #    - gochecknoinits
+  #    - gci
+  #    - exhaustive
+  #    - nlreturn
+  #    - cyclop
+  #    - nestif
+
+  disable-all: true
+  enable:
+    - wsl
+
+linters-settings:
+  revive:
+    rules:
+      - name: line-length-limit
+        arguments: [120]
+
+  gosec:
+    excludes:
+      - G204
+
+  gofumpt:
+    lang-version: "1.14"
+
+issues:
+  include:
+    - EXC0002
+
+  exclude-rules:
+    - path: _test.go
+      linters:
+        - funlen
+        - cyclop
+        - gochecknoglobals

@@ -68,7 +68,8 @@ func init() {
 	log.SetFormatter(&log.TextFormatter{
 		DisableTimestamp: false,
 		TimestampFormat:  "2006-01-02 15:04:05.000",
-		FullTimestamp:    true})
+		FullTimestamp:    true,
+	})
 	log.SetLevel(log.DebugLevel)
 	log.SetOutput(os.Stdout)
 }
@@ -91,38 +92,47 @@ func TestNormalUpdate(t *testing.T) {
 	}
 	stream.step = StepPrepare
 
-	components := []SystemComponent{SystemComponent{URL: "file:///path/to/update",
-		VendorVersion: "vendorversion1", AosVersion: 1}}
+	components := []SystemComponent{SystemComponent{
+		URL:           "file:///path/to/update",
+		VendorVersion: "vendorversion1", AosVersion: 1,
+	}}
 
 	handler.PrepareUpdate(components)
+
 	for {
 		select {
 		case internalEvent := <-eventChannel:
 			switch stream.step {
 			case StepPrepare:
 				if internalEvent.requestType != umStatusUpdate {
-					t.Errorf("Unexpected internl message %d != %d", internalEvent.requestType, umStatusUpdate)
+					t.Errorf("Unexpected internal message %d != %d", internalEvent.requestType, umStatusUpdate)
 					break
 				}
+
 				if internalEvent.status.umState != pb.UmState_PREPARED.String() {
 					t.Errorf("Unexpected UM update State  %s != %s", internalEvent.status.umState,
 						pb.UmState_PREPARED.String())
 					break
 				}
+
 				stream.step = StepUpdate
+
 				handler.StartUpdate()
 
 			case StepUpdate:
 				if internalEvent.requestType != umStatusUpdate {
-					t.Errorf("Unexpected internl message %d != %d", internalEvent.requestType, umStatusUpdate)
+					t.Errorf("Unexpected internal message %d != %d", internalEvent.requestType, umStatusUpdate)
 					break
 				}
+
 				if internalEvent.status.umState != pb.UmState_UPDATED.String() {
 					t.Errorf("Unexpected UM update State  %s != %s", internalEvent.status.umState,
 						pb.UmState_UPDATED.String())
 					break
 				}
+
 				stream.step = StepApplyUpdate
+
 				handler.StartApply()
 
 			case StepApplyUpdate:
@@ -159,10 +169,13 @@ func TestNormalUpdateWithReboot(t *testing.T) {
 	}
 	stream.step = StepPrepare
 
-	components := []SystemComponent{SystemComponent{URL: "file:///path/to/update",
-		VendorVersion: "vendorversion2", AosVersion: 1}}
+	components := []SystemComponent{SystemComponent{
+		URL:           "file:///path/to/update",
+		VendorVersion: "vendorversion2", AosVersion: 1,
+	}}
 
 	handler.PrepareUpdate(components)
+
 	for {
 		select {
 		case internalEvent := <-eventChannel:
@@ -173,7 +186,9 @@ func TestNormalUpdateWithReboot(t *testing.T) {
 						pb.UmState_PREPARED.String())
 					break
 				}
+
 				stream.step = StepRebootOnUpdate
+
 				handler.StartUpdate()
 
 			default:
@@ -184,7 +199,9 @@ func TestNormalUpdateWithReboot(t *testing.T) {
 			if stream.step == StepRebootOnUpdate {
 				handler, stopCh, err = newUmHandler("testUM2", &stream, eventChannel, pb.UmState_UPDATED)
 				stream.step = StepRebootOnApply
+
 				handler.StartApply()
+
 				continue
 			}
 
@@ -192,6 +209,7 @@ func TestNormalUpdateWithReboot(t *testing.T) {
 				handler, stopCh, err = newUmHandler("testUM2", &stream, eventChannel, pb.UmState_IDLE)
 				stream.step = StepFinish
 				stream.continueCh <- true
+
 				continue
 			}
 
@@ -215,10 +233,13 @@ func TestRevert(t *testing.T) {
 	}
 	stream.step = StepPrepare
 
-	components := []SystemComponent{SystemComponent{URL: "file:///path/to/update",
-		VendorVersion: "vendorversion3", AosVersion: 1}}
+	components := []SystemComponent{SystemComponent{
+		URL:           "file:///path/to/update",
+		VendorVersion: "vendorversion3", AosVersion: 1,
+	}}
 
 	handler.PrepareUpdate(components)
+
 	for {
 		select {
 		case internalEvent := <-eventChannel:
@@ -271,10 +292,13 @@ func TestRevertWithReboot(t *testing.T) {
 	}
 	stream.step = StepPrepare
 
-	components := []SystemComponent{SystemComponent{URL: "file:///path/to/update",
-		VendorVersion: "vendorversion4", AosVersion: 1}}
+	components := []SystemComponent{SystemComponent{
+		URL:           "file:///path/to/update",
+		VendorVersion: "vendorversion4", AosVersion: 1,
+	}}
 
 	handler.PrepareUpdate(components)
+
 	for {
 		select {
 		case internalEvent := <-eventChannel:
@@ -297,6 +321,7 @@ func TestRevertWithReboot(t *testing.T) {
 				handler, stopCh, err = newUmHandler("testUM4", &stream, eventChannel, pb.UmState_FAILED)
 				stream.step = StepRebootOnRevert
 				handler.StartRevert()
+
 				continue
 			}
 
@@ -304,6 +329,7 @@ func TestRevertWithReboot(t *testing.T) {
 				handler, stopCh, err = newUmHandler("testUM2", &stream, eventChannel, pb.UmState_IDLE)
 				stream.step = StepFinish
 				stream.continueCh <- true
+
 				continue
 			}
 
@@ -350,7 +376,9 @@ func (stream *normalUpdateStream) Send(msg *pb.CMMessages) (err error) {
 
 func (stream *normalUpdateStream) Recv() (*pb.UpdateStatus, error) {
 	<-stream.continueCh
+
 	var messageToSend *pb.UpdateStatus
+
 	switch stream.step {
 	case StepPrepare:
 		messageToSend = &pb.UpdateStatus{UmState: pb.UmState_PREPARED}
@@ -404,7 +432,9 @@ func (stream *failureUpdateStream) Send(msg *pb.CMMessages) (err error) {
 
 func (stream *failureUpdateStream) Recv() (*pb.UpdateStatus, error) {
 	<-stream.continueCh
+
 	var messageToSend *pb.UpdateStatus
+
 	switch stream.step {
 	case StepPrepare:
 		messageToSend = &pb.UpdateStatus{UmState: pb.UmState_PREPARED}

@@ -648,48 +648,6 @@ func getRawCertificate(certs []*x509.Certificate) (rawCerts [][]byte) {
 	return rawCerts
 }
 
-func parsePkcs11Url(pkcs11Url *url.URL) (library, token, label, id, userPin string, err error) {
-	opaqueValues := make(map[string]string)
-
-	for _, field := range strings.Split(pkcs11Url.Opaque, ";") {
-		items := strings.Split(field, "=")
-		if len(items) < 2 {
-			continue
-		}
-
-		opaqueValues[items[0]] = items[1]
-	}
-
-	for name, value := range opaqueValues {
-		switch name {
-		case "token":
-			token = value
-
-		case "object":
-			label = value
-
-		case "id":
-			id = value
-		}
-	}
-
-	for name, item := range pkcs11Url.Query() {
-		if len(item) == 0 {
-			continue
-		}
-
-		switch name {
-		case "module-path":
-			library = item[0]
-
-		case "pin-value":
-			userPin = item[0]
-		}
-	}
-
-	return library, token, label, id, userPin, nil
-}
-
 func (cryptoContext *CryptoContext) getPkcs11Context(library, token, userPin string) (pkcs11Ctx *crypto11.Context, err error) {
 	log.WithFields(log.Fields{"library": library, "token": token}).Debug("Get PKCS11 context")
 
@@ -717,56 +675,6 @@ func (cryptoContext *CryptoContext) getPkcs11Context(library, token, userPin str
 	}
 
 	return pkcs11Ctx, nil
-}
-
-func (cryptoContext *CryptoContext) loadPkcs11Certificate(certURL *url.URL) (certs []*x509.Certificate, err error) {
-	library, token, label, id, userPin, err := parsePkcs11Url(certURL)
-	if err != nil {
-		return nil, aoserrors.Wrap(err)
-	}
-
-	log.WithFields(log.Fields{"label": label, "id": id}).Debug("Load PKCS11 certificate")
-
-	pkcs11Ctx, err := cryptoContext.getPkcs11Context(library, token, userPin)
-	if err != nil {
-		return nil, aoserrors.Wrap(err)
-	}
-
-	if certs, err = pkcs11Ctx.FindCertificateChain([]byte(id), []byte(label), nil); err != nil {
-		return nil, aoserrors.Wrap(err)
-	}
-
-	if len(certs) == 0 {
-		return nil, aoserrors.Errorf("certificate chain label: %s, id: %s not found", label, id)
-	}
-
-	return certs, nil
-}
-
-func (cryptoContext *CryptoContext) loadCertificateByURL(certURLStr string) (certs []*x509.Certificate, err error) {
-	certURL, err := url.Parse(certURLStr)
-	if err != nil {
-		return nil, aoserrors.Wrap(err)
-	}
-
-	switch certURL.Scheme {
-	case cryptutils.SchemeFile:
-		if certs, err = cryptutils.LoadCertificate(certURL.Path); err != nil {
-			return nil, aoserrors.Wrap(err)
-		}
-
-		return certs, nil
-
-	case cryptutils.SchemePKCS11:
-		if certs, err = cryptoContext.loadPkcs11Certificate(certURL); err != nil {
-			return nil, aoserrors.Wrap(err)
-		}
-
-		return certs, aoserrors.Wrap(err)
-
-	default:
-		return nil, aoserrors.Errorf("unsupported schema %s for certificate", certURL.Scheme)
-	}
 }
 
 func (cryptoContext *CryptoContext) getKeyForEnvelope(keyInfo keyTransRecipientInfo) (key []byte, err error) {
@@ -865,10 +773,13 @@ func (symmetricContext *SymmetricCipherContext) encryptFile(ctx context.Context,
 		if writtenSize+int64(currentChunkSize) > fileSize {
 			// The last block may need a padding appending
 			currentChunkSize = int(fileSize - writtenSize)
+
 			if _, err = contextReader.Read(chunkClear[:currentChunkSize]); err != nil {
 				return aoserrors.Wrap(err)
 			}
+
 			readSize, err = symmetricContext.appendPadding(chunkClear, currentChunkSize)
+
 			if err != nil {
 				return aoserrors.Wrap(err)
 			}
@@ -940,6 +851,7 @@ func (symmetricContext *SymmetricCipherContext) appendPkcs7Padding(dataIn []byte
 	appendSize := blockSize - (dataLen % blockSize)
 
 	fullSize = dataLen + appendSize
+
 	if dataLen+appendSize > len(dataIn) {
 		return 0, aoserrors.New("no enough space to add padding")
 	}

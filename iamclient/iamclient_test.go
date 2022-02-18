@@ -134,6 +134,7 @@ func TestGetSystemID(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't create test server: %s", err)
 	}
+
 	defer server.close()
 
 	server.systemID = "testID"
@@ -154,6 +155,7 @@ func TestGetUsers(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't create test server: %s", err)
 	}
+
 	defer server.close()
 
 	server.users = []string{"user1", "user2", "user3"}
@@ -190,6 +192,7 @@ func TestRenewCertificatesNotification(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Can't create test server: %s", err)
 	}
+
 	defer server.close()
 
 	server.csr = map[string]string{"online": "onlineCSR", "offline": "offlineCSR"}

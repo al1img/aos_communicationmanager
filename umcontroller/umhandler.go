@@ -105,10 +105,14 @@ func newUmHandler(id string, umStream pb.UMService_RegisterUMServer,
 			{Name: eventStartApply, Src: []string{hStateWaitForApply}, Dst: hStateWaitForApplyStatus},
 			{Name: eventIdleState, Src: []string{hStateWaitForApplyStatus, hStateWaitForRevertStatus}, Dst: hStateIdle},
 
-			{Name: eventUpdateError, Src: []string{hStateWaitForPrepareResp, hStateWaitForUpdateStatus},
-				Dst: hStateWaitForRevert},
-			{Name: eventStartRevert, Src: []string{hStateWaitForRevert, hStateWaitForStartUpdate, hStateWaitForApply},
-				Dst: hStateWaitForRevertStatus},
+			{
+				Name: eventUpdateError, Src: []string{hStateWaitForPrepareResp, hStateWaitForUpdateStatus},
+				Dst: hStateWaitForRevert,
+			},
+			{
+				Name: eventStartRevert, Src: []string{hStateWaitForRevert, hStateWaitForStartUpdate, hStateWaitForApply},
+				Dst: hStateWaitForRevertStatus,
+			},
 		},
 		fsm.Callbacks{
 			"enter_" + hStateWaitForPrepareResp:  handler.sendPrepareUpdateRequest,
@@ -191,8 +195,8 @@ func (handler *umHandler) receiveData() {
 		}
 
 		var evt string
-		state := statusMsg.GetUmState()
-		switch state {
+
+		switch statusMsg.GetUmState() {
 		case pb.UmState_IDLE:
 			evt = eventIdleState
 		case pb.UmState_PREPARED:
@@ -200,14 +204,16 @@ func (handler *umHandler) receiveData() {
 		case pb.UmState_UPDATED:
 			evt = eventUpdateSuccess
 		case pb.UmState_FAILED:
-			evt = eventUpdateError
 			log.Error("Update failure status: ", statusMsg.GetError())
+
+			evt = eventUpdateError
 		}
 
 		err = handler.FSM.Event(evt, getUmStatusFromUmMessage(statusMsg))
 		if err != nil {
 			log.Errorf("Can't make transition umID %s %s", handler.umID, err.Error())
 		}
+
 		continue
 	}
 }
@@ -219,14 +225,16 @@ func (handler *umHandler) sendPrepareUpdateRequest(e *fsm.Event) {
 
 	componetForUpdate := []*pb.PrepareComponentInfo{}
 	for _, value := range request.components {
-		componetInfo := pb.PrepareComponentInfo{Id: value.ID,
+		componetInfo := pb.PrepareComponentInfo{
+			Id:            value.ID,
 			VendorVersion: value.VendorVersion,
 			AosVersion:    value.AosVersion,
 			Annotations:   value.Annotations,
 			Url:           value.URL,
 			Sha256:        value.Sha256,
 			Sha512:        value.Sha512,
-			Size:          value.Size}
+			Size:          value.Size,
+		}
 
 		componetForUpdate = append(componetForUpdate, &componetInfo)
 	}
