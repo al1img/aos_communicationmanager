@@ -73,6 +73,9 @@ type AmqpHandler struct { // nolint:stylecheck
 	cancelFunc context.CancelFunc
 
 	wg sync.WaitGroup
+
+	isConnected               bool
+	connectionEventsConsumers []ConnectionEventsConsumer
 }
 
 // CryptoContext interface to access crypto functions.
@@ -83,6 +86,12 @@ type CryptoContext interface {
 
 // Message AMQP message.
 type Message interface{}
+
+// ConnectionEventsConsumer connection events consumer interface.
+type ConnectionEventsConsumer interface {
+	CloudConnected()
+	CloudDisconnected()
+}
 
 /***********************************************************************************************************************
  * Variables
@@ -172,6 +181,8 @@ func (handler *AmqpHandler) Connect(cryptoContext CryptoContext, sdURL, systemID
 		return aoserrors.Wrap(err)
 	}
 
+	handler.notifyCloudConnected()
+
 	return nil
 }
 
@@ -195,6 +206,8 @@ func (handler *AmqpHandler) Disconnect() error {
 	}
 
 	handler.wg.Wait()
+
+	handler.notifyCloudDisconnected()
 
 	return nil
 }
@@ -280,6 +293,14 @@ func (handler *AmqpHandler) SendOverrideEnvVarsStatus(envs cloudprotocol.Overrid
 	handler.sendChannel <- message
 
 	return nil
+}
+
+// SubscribeForConnectionEvents subscribes for connection events.
+func (handler *AmqpHandler) SubscribeForConnectionEvents(consumer ConnectionEventsConsumer) {
+	handler.Lock()
+	defer handler.Unlock()
+
+	handler.connectionEventsConsumers = append(handler.connectionEventsConsumers, consumer)
 }
 
 // Close closes all amqp connection.
@@ -739,5 +760,21 @@ func (handler *AmqpHandler) createCloudMessage(messageType string, data interfac
 			MessageType: messageType,
 		},
 		Data: data,
+	}
+}
+
+func (handler *AmqpHandler) notifyCloudConnected() {
+	handler.isConnected = true
+
+	for _, consumer := range handler.connectionEventsConsumers {
+		consumer.CloudConnected()
+	}
+}
+
+func (handler *AmqpHandler) notifyCloudDisconnected() {
+	handler.isConnected = false
+
+	for _, consumer := range handler.connectionEventsConsumers {
+		consumer.CloudDisconnected()
 	}
 }
