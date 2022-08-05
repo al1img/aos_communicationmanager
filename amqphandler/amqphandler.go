@@ -22,6 +22,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -39,9 +40,9 @@ import (
  **********************************************************************************************************************/
 
 const (
-	sendChannelSize    = 32
+	sendMessageMaxTry  = 3
+	sendQueueSize      = 32
 	receiveChannelSize = 16
-	retryChannelSize   = 8
 )
 
 const (
@@ -60,8 +61,8 @@ type AmqpHandler struct { // nolint:stylecheck
 	// MessageChannel channel for amqp messages
 	MessageChannel chan Message
 
-	sendChannel  chan Message
-	retryChannel chan Message
+	sendMutex sync.Mutex
+	sendQueue []*messageDescriptor
 
 	sendConnection    *amqp.Connection
 	receiveConnection *amqp.Connection
@@ -91,6 +92,14 @@ type Message interface{}
 type ConnectionEventsConsumer interface {
 	CloudConnected()
 	CloudDisconnected()
+}
+
+type messageDescriptor struct {
+	cloudMessage cloudprotocol.Message
+	important    bool
+	sending      bool
+	tryCounter   int
+	deliveryTag  uint64
 }
 
 /***********************************************************************************************************************
@@ -127,6 +136,15 @@ var messageMap = map[string]func() interface{}{ // nolint:gochecknoglobals
 	},
 }
 
+var (
+	// ErrNotConnected indicates AMQP client is not connected.
+	ErrNotConnected = errors.New("not connected")
+	// ErrSendQueueFull indicates AMQP send queue is full.
+	ErrSendQueueFull = errors.New("send queue full")
+	// ErrSendQueueFull indicates sending message max try is reached and message is not delivered.
+	ErrSendMaxTry = errors.New("send max try reached")
+)
+
 /***********************************************************************************************************************
  * Public
  **********************************************************************************************************************/
@@ -136,8 +154,7 @@ func New() (*AmqpHandler, error) {
 	log.Debug("New AMQP")
 
 	handler := &AmqpHandler{
-		sendChannel:  make(chan Message, sendChannelSize),
-		retryChannel: make(chan Message, retryChannelSize),
+		sendQueue: make([]*messageDescriptor, 0, sendQueueSize),
 	}
 
 	return handler, nil
@@ -214,85 +231,77 @@ func (handler *AmqpHandler) Disconnect() error {
 
 // SendUnitStatus sends unit status.
 func (handler *AmqpHandler) SendUnitStatus(unitStatus cloudprotocol.UnitStatus) error {
-	unitStatusMsg := handler.createCloudMessage(cloudprotocol.UnitStatusType, unitStatus)
+	handler.Lock()
+	defer handler.Unlock()
 
-	handler.sendChannel <- unitStatusMsg
-
-	return nil
+	return handler.putMessageToSendQueue(cloudprotocol.UnitStatusType, unitStatus, false)
 }
 
 // SendMonitoringData sends monitoring data.
 func (handler *AmqpHandler) SendMonitoringData(monitoringData cloudprotocol.MonitoringData) error {
-	monitoringMsg := handler.createCloudMessage(cloudprotocol.MonitoringDataType, monitoringData)
+	handler.Lock()
+	defer handler.Unlock()
 
-	handler.sendChannel <- monitoringMsg
-
-	return nil
+	return handler.putMessageToSendQueue(cloudprotocol.MonitoringDataType, monitoringData, false)
 }
 
 // SendServiceNewState sends new state message.
 func (handler *AmqpHandler) SendInstanceNewState(newState cloudprotocol.NewState) error {
-	newStateMsg := handler.createCloudMessage(cloudprotocol.NewStateType, newState)
+	handler.Lock()
+	defer handler.Unlock()
 
-	handler.sendChannel <- newStateMsg
-
-	return nil
+	return handler.putMessageToSendQueue(cloudprotocol.NewStateType, newState, false)
 }
 
 // SendServiceStateRequest sends state request message.
 func (handler *AmqpHandler) SendInstanceStateRequest(request cloudprotocol.StateRequest) error {
-	stateRequestMsg := handler.createCloudMessage(cloudprotocol.StateRequestType, request)
+	handler.Lock()
+	defer handler.Unlock()
 
-	handler.sendChannel <- stateRequestMsg
-
-	return nil
+	return handler.putMessageToSendQueue(cloudprotocol.StateRequestType, request, true)
 }
 
 // SendLog sends system or service logs.
 func (handler *AmqpHandler) SendLog(serviceLog cloudprotocol.PushLog) error {
-	serviceLogMsg := handler.createCloudMessage(cloudprotocol.PushLogType, serviceLog)
+	handler.Lock()
+	defer handler.Unlock()
 
-	handler.sendChannel <- serviceLogMsg
-
-	return nil
+	return handler.putMessageToSendQueue(cloudprotocol.PushLogType, serviceLog, true)
 }
 
 // SendAlerts sends alerts message.
 func (handler *AmqpHandler) SendAlerts(alerts cloudprotocol.Alerts) error {
-	alertMsg := handler.createCloudMessage(cloudprotocol.AlertsType, alerts)
+	handler.Lock()
+	defer handler.Unlock()
 
-	handler.sendChannel <- alertMsg
-
-	return nil
+	return handler.putMessageToSendQueue(cloudprotocol.AlertsType, alerts, true)
 }
 
 // SendIssueUnitCerts sends request to issue new certificates.
 func (handler *AmqpHandler) SendIssueUnitCerts(requests []cloudprotocol.IssueCertData) error {
-	request := handler.createCloudMessage(
-		cloudprotocol.IssueUnitCertsType, cloudprotocol.IssueUnitCerts{Requests: requests})
+	handler.Lock()
+	defer handler.Unlock()
 
-	handler.sendChannel <- request
-
-	return nil
+	return handler.putMessageToSendQueue(
+		cloudprotocol.IssueUnitCertsType, cloudprotocol.IssueUnitCerts{Requests: requests}, true)
 }
 
 // SendInstallCertsConfirmation sends install certificates confirmation.
 func (handler *AmqpHandler) SendInstallCertsConfirmation(confirmations []cloudprotocol.InstallCertData) error {
-	response := handler.createCloudMessage(cloudprotocol.InstallUnitCertsConfirmationType,
-		cloudprotocol.InstallUnitCertsConfirmation{Certificates: confirmations})
+	handler.Lock()
+	defer handler.Unlock()
 
-	handler.sendChannel <- response
-
-	return nil
+	return handler.putMessageToSendQueue(
+		cloudprotocol.InstallUnitCertsConfirmationType,
+		cloudprotocol.InstallUnitCertsConfirmation{Certificates: confirmations}, true)
 }
 
 // SendOverrideEnvVarsStatus overrides env vars status.
 func (handler *AmqpHandler) SendOverrideEnvVarsStatus(envs cloudprotocol.OverrideEnvVarsStatus) error {
-	message := handler.createCloudMessage(cloudprotocol.OverrideEnvVarsStatusType, envs)
+	handler.Lock()
+	defer handler.Unlock()
 
-	handler.sendChannel <- message
-
-	return nil
+	return handler.putMessageToSendQueue(cloudprotocol.OverrideEnvVarsStatusType, envs, true)
 }
 
 // SubscribeForConnectionEvents subscribes for connection events.
@@ -311,8 +320,10 @@ func (handler *AmqpHandler) Close() {
 		handler.cancelFunc()
 	}
 
-	if err := handler.Disconnect(); err != nil {
-		log.Errorf("Can't disconnect from AMQP server: %s", err)
+	if handler.isConnected {
+		if err := handler.Disconnect(); err != nil {
+			log.Errorf("Can't disconnect from AMQP server: %s", err)
+		}
 	}
 }
 
@@ -413,7 +424,7 @@ func (handler *AmqpHandler) setupSendConnection(
 		return aoserrors.Wrap(err)
 	}
 
-	handler.wg.Add(1)
+	handler.wg.Add(2)
 
 	go handler.runSender(params, amqpChannel)
 
@@ -423,73 +434,58 @@ func (handler *AmqpHandler) setupSendConnection(
 func (handler *AmqpHandler) runSender(params cloudprotocol.SendParams, amqpChannel *amqp.Channel) {
 	log.Info("Start AMQP sender")
 
-	defer func() {
-		log.Info("AMQP sender closed")
+	deliveryTag := uint64(1)
+	errorChannel := handler.sendConnection.NotifyClose(make(chan *amqp.Error, 1))
+	confirmChannel := amqpChannel.NotifyPublish(make(chan amqp.Confirmation, sendQueueSize))
 
-		handler.wg.Done()
+	go func() {
+		for {
+			confirm, ok := <-confirmChannel
+			if !ok {
+				handler.wg.Done()
+
+				return
+			}
+
+			if err := handler.confirmMessage(confirm); err != nil {
+				log.WithFields(log.Fields{"deliveryTag": confirm.DeliveryTag}).Errorf("Confirm message error: %v", err)
+			}
+		}
 	}()
 
-	errorChannel := handler.sendConnection.NotifyClose(make(chan *amqp.Error, 1))
-	confirmChannel := amqpChannel.NotifyPublish(make(chan amqp.Confirmation, 1))
+	handler.prepareSendingQueue()
 
 	for {
-		var (
-			message Message
-			retry   bool
-		)
-
 		select {
 		case err := <-errorChannel:
 			if err != nil {
 				handler.MessageChannel <- aoserrors.New(err.Reason)
 			}
 
+			log.Info("AMQP sender closed")
+
+			handler.wg.Done()
+
 			return
 
-		case message = <-handler.retryChannel:
-			retry = true
+		default:
+			handler.sendMutex.Lock()
 
-		case message = <-handler.sendChannel:
-		}
+			for i, message := range handler.sendQueue {
+				if message.sending {
+					continue
+				}
 
-		data, err := json.Marshal(message)
-		if err != nil {
-			log.Errorf("Can't parse message: %s", err)
-			continue
-		}
+				if err := handler.sendMessage(message, amqpChannel, params, &deliveryTag); err != nil {
+					log.Errorf("Can't send message: %v", err)
 
-		if retry {
-			log.WithFields(log.Fields{
-				"data": string(data),
-			}).Debug("AMQP retry message")
-		} else {
-			log.WithFields(log.Fields{
-				"data": string(data),
-			}).Debug("AMQP send message")
-		}
+					handler.sendQueue = append(handler.sendQueue[:i], handler.sendQueue[i+1:]...)
+				}
 
-		if err := amqpChannel.Publish(
-			params.Exchange.Name, // exchange
-			"",                   // routing key
-			params.Mandatory,     // mandatory
-			params.Immediate,     // immediate
-			amqp.Publishing{
-				ContentType:  "application/json",
-				DeliveryMode: amqp.Persistent,
-				UserId:       params.User,
-				Body:         data,
-			}); err != nil {
-			log.Errorf("Error publishing AMQP message: %s", err)
-		}
+				break
+			}
 
-		// Handle retry packets
-		confirm, ok := <-confirmChannel
-		if !ok || !confirm.Ack {
-			log.WithFields(log.Fields{
-				"data": string(data),
-			}).Warning("AMQP data is not sent. Put into retry queue")
-
-			handler.retryChannel <- message
+			handler.sendMutex.Unlock()
 		}
 	}
 }
@@ -777,4 +773,121 @@ func (handler *AmqpHandler) notifyCloudDisconnected() {
 	for _, consumer := range handler.connectionEventsConsumers {
 		consumer.CloudDisconnected()
 	}
+}
+
+func (handler *AmqpHandler) putMessageToSendQueue(messageType string, data interface{}, important bool) error {
+	handler.sendMutex.Lock()
+	defer handler.sendMutex.Unlock()
+
+	if !important && !handler.isConnected {
+		return ErrNotConnected
+	}
+
+	if len(handler.sendQueue) >= sendQueueSize {
+		return ErrSendQueueFull
+	}
+
+	handler.sendQueue = append(handler.sendQueue, &messageDescriptor{
+		cloudMessage: handler.createCloudMessage(messageType, data),
+		important:    important,
+	})
+
+	return nil
+}
+
+func (handler *AmqpHandler) sendMessage(
+	message *messageDescriptor, amqpChannel *amqp.Channel, params cloudprotocol.SendParams, deliveryTag *uint64,
+) error {
+	if message.tryCounter == sendMessageMaxTry {
+		return ErrSendMaxTry
+	}
+
+	data, err := json.Marshal(message.cloudMessage)
+	if err != nil {
+		return aoserrors.Wrap(err)
+	}
+
+	if message.tryCounter == 0 {
+		log.WithFields(log.Fields{"data": string(data), "deliveryTag": *deliveryTag}).Debug("AMQP send message")
+	} else {
+		log.WithFields(log.Fields{"data": string(data), "deliveryTag": *deliveryTag}).Debug("AMQP retry message")
+	}
+
+	message.tryCounter++
+
+	if err := amqpChannel.Publish(
+		params.Exchange.Name, // exchange
+		"",                   // routing key
+		params.Mandatory,     // mandatory
+		params.Immediate,     // immediate
+		amqp.Publishing{
+			ContentType:  "application/json",
+			DeliveryMode: amqp.Persistent,
+			UserId:       params.User,
+			Body:         data,
+		}); err != nil {
+		log.Errorf("Can't publish message: %v", err)
+		// return no error for retrying purpose
+		return nil
+	}
+
+	message.sending = true
+	message.deliveryTag = *deliveryTag
+	*deliveryTag++
+
+	return nil
+}
+
+func (handler *AmqpHandler) prepareSendingQueue() {
+	handler.sendMutex.Lock()
+	defer handler.sendMutex.Unlock()
+
+	// Clear sending flag to allow message to be sent again.
+	// Discard unimportant messages.
+
+	i := 0
+
+	for _, message := range handler.sendQueue {
+		if message.important {
+			handler.sendQueue[i] = message
+			i++
+
+			if message.sending {
+				message.sending = false
+			}
+		}
+	}
+
+	for j := i; j < len(handler.sendQueue); j++ {
+		handler.sendQueue[j] = nil
+	}
+
+	handler.sendQueue = handler.sendQueue[:i]
+}
+
+func (handler *AmqpHandler) confirmMessage(confirm amqp.Confirmation) error {
+	handler.sendMutex.Lock()
+	defer handler.sendMutex.Unlock()
+
+	for i, message := range handler.sendQueue {
+		if message.deliveryTag != confirm.DeliveryTag {
+			continue
+		}
+
+		if !confirm.Ack {
+			log.WithFields(log.Fields{"deliveryTag": message.deliveryTag}).Warn("Message not delivered")
+
+			message.sending = false
+
+			return nil
+		}
+
+		log.WithFields(log.Fields{"deliveryTag": message.deliveryTag}).Debug("Message delivered")
+
+		handler.sendQueue = append(handler.sendQueue[:i], handler.sendQueue[i+1:]...)
+
+		return nil
+	}
+
+	return aoserrors.Errorf("message with delivery tag %d not found", confirm.DeliveryTag)
 }
