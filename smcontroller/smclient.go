@@ -20,6 +20,7 @@ package smcontroller
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"reflect"
 	"time"
 
@@ -33,6 +34,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/aoscloud/aos_common/api/cloudprotocol"
+	"github.com/aoscloud/aos_communicationmanager/amqphandler"
 	"github.com/aoscloud/aos_communicationmanager/config"
 	"github.com/aoscloud/aos_communicationmanager/unitstatushandler"
 )
@@ -711,7 +713,7 @@ func (client *smClient) processNewInstanceSateNotification(data *pb.SMNotificati
 		InstanceIdent: pbconvert.NewInstanceIdentFromPB(data.NewInstanceState.State.Instance),
 		Checksum:      data.NewInstanceState.State.StateChecksum,
 		State:         string(data.NewInstanceState.State.State),
-	}); err != nil {
+	}); err != nil && !errors.Is(err, amqphandler.ErrNotConnected) {
 		log.Errorf("Can't send service new state: %s", err)
 	}
 }
