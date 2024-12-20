@@ -28,7 +28,6 @@ type Rule struct {
 	IPProto           int
 	UIDRange          *RuleUIDRange
 	Protocol          uint8
-	Type              uint8
 }
 
 func (r Rule) String() string {
@@ -42,8 +41,8 @@ func (r Rule) String() string {
 		to = r.Dst.String()
 	}
 
-	return fmt.Sprintf("ip rule %d: from %s to %s table %d %s",
-		r.Priority, from, to, r.Table, r.typeString())
+	return fmt.Sprintf("ip rule %d: from %s to %s table %d",
+		r.Priority, from, to, r.Table)
 }
 
 // NewRule return empty rules.
